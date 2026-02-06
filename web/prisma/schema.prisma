@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Client {
+  id                  String   @id @default(uuid())
+  clientId            String   @unique
+  name                String
+  objective           String   @default("ecom")
+  driveFolderId       String?
+  sheetTemplateId     String?
+  slidesTemplateId    String?
+  metabaseEmbedUrl    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  accounts            AdAccount[]
+  runs                RunLog[]
+}
+
+model AdAccount {
+  id        String   @id @default(uuid())
+  platform  String
+  accountId String
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([platform, accountId, clientId])
+}
+
+model RunLog {
+  id          String   @id @default(uuid())
+  clientId    String
+  monthLabel  String
+  status      String
+  dailyRows   Int
+  summaryRows Int
+  sheetUrl    String?
+  slidesUrl   String?
+  createdAt   DateTime @default(now())
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model SecretRef {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  secretKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-sand text-ink font-body;
+}
+
+.bg-grid {
+  background-size: 32px 32px;
+  background-image:
+    linear-gradient(to right, rgba(11, 13, 18, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(11, 13, 18, 0.08) 1px, transparent 1px);
+}

@@ -1,0 +1,96 @@
+name: Deploy Report Automation
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+env:
+  REGION: asia-southeast1
+  JOB_NAME: report-automation-monthly
+  GAR_REPO: report-automation
+  JOB_ARGS: run,--config,config/clients.yaml,--credentials,config/ads_credentials.yaml
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r "Report automation/requirements.txt"
+
+      - name: Run tests
+        run: |
+          cd "Report automation"
+          PYTHONPATH=src python -m unittest discover -s tests
+          PYTHONPATH=src python -m compileall -q src
+
+      - name: Auth to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and push image
+        run: |
+          IMAGE_URI=${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.JOB_NAME }}:${{ github.sha }}
+          gcloud builds submit "Report automation" --tag "$IMAGE_URI"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Deploy Cloud Run Job
+        run: |
+          gcloud run jobs deploy ${{ env.JOB_NAME }} \
+            --image "$IMAGE_URI" \
+            --region ${{ env.REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --args "${{ env.JOB_ARGS }}" \
+            --tasks 1 \
+            --max-retries 1
+
+      - name: Ensure Scheduler Job
+        run: |
+          JOB_RUN_URI="https://run.googleapis.com/v2/projects/${{ secrets.GCP_PROJECT_ID }}/locations/${{ env.REGION }}/jobs/${{ env.JOB_NAME }}:run"
+          SCHEDULER_SA=scheduler@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+          gcloud scheduler jobs create http report-automation-monthly \
+            --location ${{ env.REGION }} \
+            --schedule "0 2 1 * *" \
+            --time-zone "Asia/Ho_Chi_Minh" \
+            --http-method POST \
+            --uri "$JOB_RUN_URI" \
+            --oauth-service-account-email "$SCHEDULER_SA" \
+            --headers "Content-Type=application/json" \
+            --message-body "{}" \
+            --attempt-deadline "600s" \
+            --quiet || \
+            gcloud scheduler jobs update http report-automation-monthly \
+              --location ${{ env.REGION }} \
+              --schedule "0 2 1 * *" \
+              --time-zone "Asia/Ho_Chi_Minh" \
+              --http-method POST \
+              --uri "$JOB_RUN_URI" \
+              --oauth-service-account-email "$SCHEDULER_SA" \
+              --headers "Content-Type=application/json" \
+              --message-body "{}" \
+              --attempt-deadline "600s" \
+              --quiet

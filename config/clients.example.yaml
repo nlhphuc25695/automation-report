@@ -1,0 +1,22 @@
+settings:
+  currency: "VND"
+  locale: "vi-VN"
+  timezone: "Asia/Ho_Chi_Minh"
+  bigquery:
+    project_id: "your-gcp-project"
+    dataset: "ads_reporting"
+
+clients:
+  - client_id: "client_a"
+    name: "Client A"
+    objective: "ecom" # options: ecom | lead | branding | social
+    drive_folder_id: "drive_folder_id_for_client_a"
+    sheet_template_id: "google_sheet_template_id"
+    slides_template_id: "google_slides_template_id"
+    ad_accounts:
+      meta:
+        - "meta_account_id_1"
+      google:
+        - "google_ads_customer_id_1"
+      tiktok:
+        - "tiktok_account_id_1"

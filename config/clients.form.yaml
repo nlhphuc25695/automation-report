@@ -1,0 +1,23 @@
+# Form điền cấu hình khách hàng
+settings:
+  currency: "VND"
+  locale: "vi-VN"
+  timezone: "Asia/Ho_Chi_Minh"
+  bigquery:
+    project_id: "<GCP_PROJECT_ID>"
+    dataset: "ads_reporting"
+
+clients:
+  - client_id: "<client_id>"
+    name: "<client_name>"
+    objective: "ecom" # ecom | lead | branding | social
+    drive_folder_id: "<drive_folder_id>"
+    sheet_template_id: "" # để trống nếu muốn tự tạo template theo objective
+    slides_template_id: "" # để trống nếu muốn tự tạo template theo objective
+    ad_accounts:
+      meta:
+        - "<meta_account_id_1>"
+      google:
+        - "<google_ads_customer_id_1>"
+      tiktok:
+        - "<tiktok_account_id_1>"
